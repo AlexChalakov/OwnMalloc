@@ -23,8 +23,14 @@ static dataBlocks head;
 static dataBlocks* addr = &head;
 static int* tail;
 
+void initialise(){
+    head.nextUsed = 0;
+    head.nextLength = 0;
+}
+
 void * new_malloc(size_t size)
 {
+    initialise(); //initialising the needed variables
     if (size <= 0) //making sure that the size cant be less or equal to 0
     {
         printf("Size CANNOT be 0! ERROR!\n");
@@ -56,7 +62,7 @@ void * new_malloc(size_t size)
 void new_free(void * ptr)
 {
     ptr = ptr - 7; //getting the head of our pointer
-    dataBlocks freeBlock = (dataBlocks) ptr; //making the pointer be a free block
+    dataBlocks* freeBlock = (dataBlocks*) ptr; //making the pointer be a free block
     freeBlock->nextUsed = 0;    //making the free block false, as not used
 };
 
