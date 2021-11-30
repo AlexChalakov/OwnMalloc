@@ -23,14 +23,8 @@ static dataBlocks head;
 static dataBlocks* addr = &head;
 static int* tail;
 
-void initialise(){
-    head.nextUsed = 0;
-    head.nextLength = 0;
-}
-
 void * new_malloc(size_t size)
 {
-    initialise(); //initialising the needed variables
     if (size <= 0) //making sure that the size cant be less or equal to 0
     {
         printf("Size CANNOT be 0! ERROR!\n");
@@ -44,16 +38,31 @@ void * new_malloc(size_t size)
 
     if (size < SMALL_BLOCK_MAX_SIZE) //define max size, should be less than 8192
     {
+        printf("Used: %d\n", addr->nextUsed);
+        printf("Length: %ld\n", addr->nextLength);
         printf("Size is smaller than 8192.\n");
        if (addr->nextUsed == 0)  //if not used
        {
-           if (size > addr->nextLength) //check if there is enough memory for block to fit, if not
+           printf("Not used.\n");
+           if (addr->nextLength == 0 || size < addr->nextLength) //if the block fits and there is enough memory
            {
-               tail = sbrk(((int*)addr->nextBlock + addr->nextLength) - tail); //assign more memory
-           } else if (addr->nextLength == 0 || size < addr->nextLength) //if the block fits and there is enough memory
-           {
+               printf("Allocating memory!\n");
                addr->nextUsed = 1; //make it used
                addr->nextLength = size; //assign the size at the lengths head adress
+               printf("Used: %d\n", addr->nextUsed);
+               printf("Length: %ld\n", addr->nextLength);
+
+               int add = size + sizeof(addr->nextLength);
+               unsigned long int newAddr = (unsigned long int)addr;
+               newAddr += add;
+
+               addr = (void *)newAddr;
+           }
+
+           if ((((void*)addr->nextBlock) + addr->nextLength) > (void*)tail) //if address goes beyond the tail, add more memory
+           {
+               printf("Getting more memory!\n");
+               tail = sbrk(SMALL_BLOCK_MAX_SIZE); //assign 1 more block of 8192 bytes
            }
        }
     } // else if (mmap)
@@ -67,5 +76,11 @@ void new_free(void * ptr)
 };
 
 int main(){
-    
+    addr = sbrk(0); //getting the current address;
+    sbrk(SMALL_BLOCK_MAX_SIZE); //adding initial memory
+    printf("%p\n", addr);
+
+    void *ptr = new_malloc(2);
+
+    printf("%p\n", addr);
 }
