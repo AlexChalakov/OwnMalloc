@@ -20,6 +20,9 @@ static dataBlocks *addr = &head;
 struct dataBlocks *freeList = (void*)SMALL_BLOCK_MAX_SIZE;
 static int* tail;
 
+void initialise()
+{   }
+
 void coalesce() //merging consecutive free blocks 
 {
     struct dataBlocks *currBlock; //a metadata pointer to the current block
@@ -66,11 +69,11 @@ void * new_malloc(size_t size)
                printf("Used: %d\n", addr->used);
                printf("Length: %ld\n", addr->length);
 
-               int add = size + sizeof(addr->length);
-               unsigned long int newAddr = (unsigned long int)addr;
-               newAddr += add;
+               int allocation = size + sizeof(addr->length);
+               unsigned long int tempAddr = (unsigned long int)addr;
 
-               addr = (void *)newAddr;
+               newAddr += allocation;
+               addr = (void *)tempAddr;
            }
 
            if ((((void*)addr->nextBlock) + addr->length) > (void*)tail) //if address goes beyond the tail, add more memory
@@ -83,13 +86,13 @@ void * new_malloc(size_t size)
            {
                printf("Next Block is NULL.\n");
                addr->nextBlock = addr + addr->length + 7; //taking the end of the memory block, if removed gives segmentation fault
+               
                addr->nextBlock->used = 0; //making the new block unused
                addr->nextBlock->length = 0; //making it 0 length
-               addr->nextBlock->prevBlock = addr; //making the new block a previous block
-               addr->nextBlock->prevBlock->used = 1; //making the previous block used
-               addr->nextBlock->prevBlock->length = addr->length;//assigning the length
 
-               addr->nextBlock->prevBlock->length = tail - (int*) &(addr->nextBlock->nextBlock);
+               addr->prevBlock = addr; //making the new block a previous block
+               addr->prevBlock->used = 1; //making the previous block used
+               addr->prevBlock->length = addr->length;//assigning the length
            }
        }
     } // else if (mmap)
@@ -108,7 +111,8 @@ void new_free(void * ptr)   //
     //coalesce(); //merging free blocks
 };
 
-int main(){
+int main()
+{
     char letter;    //initialising the needed character for the scanf 
     void* ptr;
 
@@ -124,20 +128,19 @@ int main(){
         {
             if (letter == 'A')
             {
-                int size;
-                scanf("%d", &size);
-                ptr = new_malloc(size);
+                int sizeBytes;
+                scanf("%d", &sizeBytes);
+                ptr = new_malloc(sizeBytes);
                 printf("Address after allocation: %p\n", addr);
             } else if (letter == 'F')
             {
                 ptr = addr;
                 new_free(ptr);
-                printf("Used: %d\n", addr->used);
+                printf("Used: %d,so address is freed.\n", addr->used);
                 //printf("Address after freeing: %p\n", addr);
             }
         }
     }
-
     //void *ptr = new_malloc(2);
     //printf("Address after allocation: %p\n", addr);
 }
