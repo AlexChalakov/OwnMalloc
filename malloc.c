@@ -17,7 +17,7 @@ typedef struct dataBlocks {
 
 static dataBlocks head;
 static dataBlocks *addr = &head;
-struct dataBlocks *freeList = SMALL_BLOCK_MAX_SIZE;
+struct dataBlocks *freeList = (void*)SMALL_BLOCK_MAX_SIZE;
 static int* tail;
 
 void coalesce() //merging consecutive free blocks 
@@ -82,7 +82,7 @@ void * new_malloc(size_t size)
            if (addr->nextBlock == NULL)
            {
                printf("Next Block is NULL.\n");
-               addr->nextBlock = addr + addr->length + 7; //taking the end of the memory block
+               addr->nextBlock = addr + addr->length + 7; //taking the end of the memory block, if removed gives segmentation fault
                addr->nextBlock->used = 0; //making the new block unused
                addr->nextBlock->length = 0; //making it 0 length
                addr->nextBlock->prevBlock = addr; //making the new block a previous block
@@ -90,7 +90,7 @@ void * new_malloc(size_t size)
                addr->nextBlock->prevBlock->length = addr->length;//assigning the length
 
                addr->nextBlock->prevBlock->length = tail - (int*) &(addr->nextBlock->nextBlock);
-           } 
+           }
        }
     } // else if (mmap)
 };
@@ -103,22 +103,23 @@ void new_free(void * ptr)   //
     }
     
     dataBlocks* freeBlock = (dataBlocks*) ptr; //making the pointer be a free block
-    --freeBlock; //going back by 1
+    //--freeBlock; //going back by 1
     freeBlock->used = 0;    //making the free block false, as not used
-    coalesce();
+    //coalesce(); //merging free blocks
 };
 
 int main(){
     char letter;    //initialising the needed character for the scanf 
-    //void* ptr;
+    void* ptr;
 
     addr = sbrk(0); //getting the current address;
     sbrk(SMALL_BLOCK_MAX_SIZE); //adding initial memory
     printf("Initial Address: %p\n", addr);
-    /*scanf("%c", &letter);
 
     for(;;)
     {
+        //printf("Initial Address: %p\n", addr);
+        scanf("%c", &letter);
         if (letter == 'A' || letter == 'F')
         {
             if (letter == 'A')
@@ -126,14 +127,17 @@ int main(){
                 int size;
                 scanf("%d", &size);
                 ptr = new_malloc(size);
+                printf("Address after allocation: %p\n", addr);
             } else if (letter == 'F')
             {
-                //ptr = addr;
+                ptr = addr;
                 new_free(ptr);
+                printf("Used: %d\n", addr->used);
+                //printf("Address after freeing: %p\n", addr);
             }
         }
-    }*/
+    }
 
-    void *ptr = new_malloc(2);
-    printf("Address after allocation: %p\n", addr);
+    //void *ptr = new_malloc(2);
+    //printf("Address after allocation: %p\n", addr);
 }
