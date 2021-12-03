@@ -18,7 +18,7 @@ typedef struct dataBlocks {
 static dataBlocks *head; //head of our data
 static dataBlocks *tail; //tail of our data
 struct dataBlocks *addr;  //an address pointer 
-struct dataBlocks *freeList; //FREELIST POINTER VARIABLE
+//struct dataBlocks *freeList; //FREELIST POINTER VARIABLE
 static int memoryRem = SMALL_BLOCK_MAX_SIZE;   //initialising the memory thats remaining with the whole memory, it starts from the max
 static void* startAddress; //to record my starting address
 
@@ -30,21 +30,20 @@ void initialise() //initialising the variables
 
 void traverseFreeList()
 {
-    struct dataBlocks *traverse = head;
-    printf("TEST1\n");
-    while (traverse->nextBlock != NULL)
+    struct dataBlocks *freelist = head; //making the freelist point to our head
+    while (freelist->nextBlock != NULL) //looping until the end
     {
             printf("LOOP1\n");
-        if (traverse->used==0)
+        if (freelist->used==0) //if its free
         {
             printf("LOOP2\n");
-            printf("%p - %ld\n", (void*) &traverse, traverse->length);
+            printf("%p - %ld\n", (void*) &freelist, freelist->length); //print it out
         }
-        traverse = traverse->nextBlock; //goes through the loop all over again
+        freelist = freelist->nextBlock; //goes through the loop all over again
     }
 }
 
-void coalesce() //merging consecutive free blocks - not working rn
+/*void coalesce() //merging consecutive free blocks - not working rn
 {
     struct dataBlocks *currBlock; //a metadata pointer to the current block
     printf("FIRST");
@@ -64,7 +63,7 @@ void coalesce() //merging consecutive free blocks - not working rn
         currBlock->prevBlock = currBlock; //making the previous block the current block
         currBlock = currBlock -> nextBlock; //going to the next one and so on
     }
-}
+}*/
 
 void * new_malloc(size_t size)
 {
@@ -75,13 +74,14 @@ void * new_malloc(size_t size)
         return NULL;
     }
 
-    if (size > memoryRem)
+    if (size > memoryRem) //if the size is bigger than 8192
     {
-        sbrk(SMALL_BLOCK_MAX_SIZE);
-        size  = size - SMALL_BLOCK_MAX_SIZE;
+        sbrk(SMALL_BLOCK_MAX_SIZE); //we request one more block of 8192 memory
+        size  = size - SMALL_BLOCK_MAX_SIZE; //seeing whats left for the new block
         printf("Getting more memory!\n");
     }
-    memoryRem = memoryRem - size;
+
+    memoryRem = memoryRem - size; //making space less and less, allocating size until 8192
 
     if (size < SMALL_BLOCK_MAX_SIZE) //define max size, should be less than 8192
     {
@@ -99,19 +99,19 @@ void * new_malloc(size_t size)
                printf("Used: %d\n", addr->used);
                printf("Length: %ld\n", addr->length);
 
-               int allocation = size + sizeof(addr->length);
+               int allocation = size + sizeof(addr->length); //where the allocation happens
                unsigned long int tempAddr = (unsigned long int)addr;
 
-               tempAddr += allocation;
-               addr = (void *)tempAddr;
+               tempAddr += allocation; //puts the size + length in the temporary address
+               addr = (void *)tempAddr; //which points to the new address after allocation
 
-               if (head == NULL)    //whenever head is null
+               if (head == NULL)    //whenever head is null, only goes once in this loop at the end
                {    //double linked list implementation
                    head = addr; 
                    tail = addr;
                } else {
-                   tail->nextBlock = addr; //whenever we add a new item, we chain the next to the tail, and the previous to the new address
-                   addr->prevBlock = tail;
+                   tail->nextBlock = addr; //whenever we add a new item, we chain the next to the tail
+                   addr->prevBlock = tail; //and the previous to the new address
                    tail = addr;
                }
            }
@@ -145,15 +145,15 @@ int main()
 
     for(;;) //loop
     {
-        scanf("%c", &letter); //scannig for the letter for each operation
+        scanf("%c", &letter); //scanning for the letter for each operation
         if (letter == 'A' || letter == 'F')
         {
             if (letter == 'A')
             {
-                int sizeBytes;
+                int sizeBytes; //just for the scanf
                 scanf("%d", &sizeBytes);
-                ptr = new_malloc(sizeBytes);
-                printf("Address after allocation: %p\n", addr);
+                ptr = new_malloc(sizeBytes); //puts the malloc operation in the pointer
+                printf("Address after allocation: %p\n", addr); //see the allocated address
             } else if (letter == 'F')
             {
                 scanf("%p", &ptr);
