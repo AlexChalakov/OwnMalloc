@@ -15,26 +15,52 @@ typedef struct dataBlocks {
     struct dataBlocks* nextBlock;
 } dataBlocks;
 
-static dataBlocks head;
-static dataBlocks *addr = &head;
-struct dataBlocks *freeList = (void*)SMALL_BLOCK_MAX_SIZE;
-static int* tail;
+static dataBlocks *head; //head of our data
+static dataBlocks *tail; //tail of our data
+struct dataBlocks *addr;  //an address pointer 
+struct dataBlocks *freeList; //FREELIST POINTER VARIABLE
+static int memoryRem = SMALL_BLOCK_MAX_SIZE;   //initialising the memory thats remaining with the whole memory, it starts from the max
+static void* startAddress; //to record my starting address
 
-void initialise()
-{   }
+void initialise() //initialising the variables
+{   
+    addr->used = 0;
+    addr->length = 0;
+}
 
-void coalesce() //merging consecutive free blocks 
+void traverseFreeList()
+{
+    struct dataBlocks *traverse = head;
+    printf("TEST1\n");
+    while (traverse->nextBlock != NULL)
+    {
+            printf("LOOP1\n");
+        if (traverse->used==0)
+        {
+            printf("LOOP2\n");
+            printf("%p - %ld\n", (void*) &traverse, traverse->length);
+        }
+        traverse = traverse->nextBlock; //goes through the loop all over again
+    }
+}
+
+void coalesce() //merging consecutive free blocks - not working rn
 {
     struct dataBlocks *currBlock; //a metadata pointer to the current block
+    printf("FIRST");
     currBlock = freeList; //pointing it to the memory
+    printf("SECOND");
     while ((currBlock->nextBlock)!= NULL) //traverses through the data blocks
     {
         printf("Free traverse initiated.");
         if ((currBlock->used == 0) && (currBlock->nextBlock->used == 0)) //if the current and the next one are not used, execute
         {
+            printf("THIRD");
             currBlock->length += (currBlock->nextBlock->length) + sizeof(struct dataBlocks); //gets the current block length and adds the next one to it
             currBlock->nextBlock = currBlock -> nextBlock -> nextBlock; //going to the next next block
         }
+        printf("FOURTH");
+
         currBlock->prevBlock = currBlock; //making the previous block the current block
         currBlock = currBlock -> nextBlock; //going to the next one and so on
     }
@@ -42,16 +68,20 @@ void coalesce() //merging consecutive free blocks
 
 void * new_malloc(size_t size)
 {
+    initialise(); //initiliasing the variables
     if (size <= 0) //making sure that the size cant be less or equal to 0
     {
         printf("Size CANNOT be 0! ERROR!\n");
         return NULL;
     }
-    
-    if(tail == NULL){
-        //printf("Tail has gone to hell! Program break.\n");
-        tail = (int*) sbrk(0);  //assign the tail as the program break - end
+
+    if (size > memoryRem)
+    {
+        sbrk(SMALL_BLOCK_MAX_SIZE);
+        size  = size - SMALL_BLOCK_MAX_SIZE;
+        printf("Getting more memory!\n");
     }
+    memoryRem = memoryRem - size;
 
     if (size < SMALL_BLOCK_MAX_SIZE) //define max size, should be less than 8192
     {
@@ -72,43 +102,35 @@ void * new_malloc(size_t size)
                int allocation = size + sizeof(addr->length);
                unsigned long int tempAddr = (unsigned long int)addr;
 
-               newAddr += allocation;
+               tempAddr += allocation;
                addr = (void *)tempAddr;
-           }
 
-           if ((((void*)addr->nextBlock) + addr->length) > (void*)tail) //if address goes beyond the tail, add more memory
-           {
-               printf("Getting more memory!\n");
-               tail = sbrk(SMALL_BLOCK_MAX_SIZE); //assign 1 more block of 8192 bytes
-           }
-
-           if (addr->nextBlock == NULL)
-           {
-               printf("Next Block is NULL.\n");
-               addr->nextBlock = addr + addr->length + 7; //taking the end of the memory block, if removed gives segmentation fault
-               
-               addr->nextBlock->used = 0; //making the new block unused
-               addr->nextBlock->length = 0; //making it 0 length
-
-               addr->prevBlock = addr; //making the new block a previous block
-               addr->prevBlock->used = 1; //making the previous block used
-               addr->prevBlock->length = addr->length;//assigning the length
+               if (head == NULL)    //whenever head is null
+               {    //double linked list implementation
+                   head = addr; 
+                   tail = addr;
+               } else {
+                   tail->nextBlock = addr; //whenever we add a new item, we chain the next to the tail, and the previous to the new address
+                   addr->prevBlock = tail;
+                   tail = addr;
+               }
            }
        }
     } // else if (mmap)
 };
 
-void new_free(void * ptr)   //
+void new_free(void * ptr) 
 {
-    if (ptr == NULL)
+    if (ptr == NULL) //can't be null
     {
         return;
     }
     
     dataBlocks* freeBlock = (dataBlocks*) ptr; //making the pointer be a free block
-    //--freeBlock; //going back by 1
-    freeBlock->used = 0;    //making the free block false, as not used
-    //coalesce(); //merging free blocks
+    printf("Used: %d,so address is NOT FREE.\n", freeBlock->used);
+    freeBlock->used = 0;  //making the free block false, as not used
+    traverseFreeList();
+    //coalesce();
 };
 
 int main()
@@ -117,13 +139,13 @@ int main()
     void* ptr;
 
     addr = sbrk(0); //getting the current address;
+    startAddress = addr; //making the addr the starting address
     sbrk(SMALL_BLOCK_MAX_SIZE); //adding initial memory
-    printf("Initial Address: %p\n", addr);
+    printf("Initial Address: %p\n", startAddress);
 
-    for(;;)
+    for(;;) //loop
     {
-        //printf("Initial Address: %p\n", addr);
-        scanf("%c", &letter);
+        scanf("%c", &letter); //scannig for the letter for each operation
         if (letter == 'A' || letter == 'F')
         {
             if (letter == 'A')
@@ -134,10 +156,10 @@ int main()
                 printf("Address after allocation: %p\n", addr);
             } else if (letter == 'F')
             {
-                ptr = addr;
+                scanf("%p", &ptr);
+                //printf("%p\n", ptr);
                 new_free(ptr);
                 printf("Used: %d,so address is freed.\n", addr->used);
-                //printf("Address after freeing: %p\n", addr);
             }
         }
     }
