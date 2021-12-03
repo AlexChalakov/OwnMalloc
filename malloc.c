@@ -163,6 +163,4 @@ int main()
             }
         }
     }
-    //void *ptr = new_malloc(2);
-    //printf("Address after allocation: %p\n", addr);
 }
